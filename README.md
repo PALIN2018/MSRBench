@@ -1,8 +1,8 @@
-# MRecBench: Benchmarking Large Vision Language Models on Multimodal Recommendation
+# When Large Vision Language Models Meet Multimodal Sequential Recommendation: An Empirical Study
 
 This repository includes the dataset and benchmark of the paper:
 
-**MRecBench: Benchmarking Large Vision Language Models on Multimodal Recommendation (Submitted to NeurIPS 2024 Track on Datasets and Benchmarks).**
+**When Large Vision Language Models Meet Multimodal Sequential Recommendation: An Empirical Study **
 
 **Authors**: Peilin Zhou, Chao Liu, Jing Ren, Xinfeng Zhou, Yueqi Xie, Meng Cao, You-Liang Huang, Dading Chong, Guojun Yin, Wei Lin, Junling Liu, Jae Boum KIM, Shoujin Wang, Raymond Chi-Wing Wong, Sunghun Kim
 
