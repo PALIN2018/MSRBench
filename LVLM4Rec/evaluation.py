@@ -18,9 +18,14 @@ from collections import Counter
 from pathlib import Path
 
 
-CANDIDATE_RE = re.compile(
-    r"candidate items in the item pool:\s*(\[.*?\])\.", re.DOTALL | re.IGNORECASE
+CANDIDATE_MARKERS = (
+    re.compile(r"candidate items in the item pool\s*:", re.IGNORECASE),
+    re.compile(
+        r"pre-ranked item recommendation sequence.*?from highest to lowest\s*:",
+        re.DOTALL | re.IGNORECASE,
+    ),
 )
+FENCED_JSON_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
 
 
 def normalize_title(value):
@@ -53,12 +58,46 @@ def conservative_alias(left, right):
     return shorter == longer[: len(shorter)]
 
 
-def parse_candidates(prompt):
-    """Extract the candidate-title list embedded in a benchmark prompt."""
-    match = CANDIDATE_RE.search(prompt)
-    if not match:
+def _list_literal_after(prompt, marker):
+    """Return a balanced Python list literal following a prompt marker."""
+    start = prompt.find("[", marker.end())
+    if start < 0:
         raise ValueError("candidate list not found")
-    candidates = ast.literal_eval(match.group(1))
+
+    depth = 0
+    quote = None
+    escaped = False
+    for index in range(start, len(prompt)):
+        character = prompt[index]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+            continue
+        if character in ("'", '"'):
+            quote = character
+        elif character == "[":
+            depth += 1
+        elif character == "]":
+            depth -= 1
+            if depth == 0:
+                return prompt[start : index + 1]
+    raise ValueError("unterminated candidate list")
+
+
+def parse_candidates(prompt):
+    """Extract candidates from direct-ranking and pre-ranked reranking prompts."""
+    marker = None
+    for pattern in CANDIDATE_MARKERS:
+        marker = pattern.search(prompt)
+        if marker is not None:
+            break
+    if marker is None:
+        raise ValueError("candidate list not found")
+    candidates = ast.literal_eval(_list_literal_after(prompt, marker))
     if not isinstance(candidates, list) or not all(isinstance(item, str) for item in candidates):
         raise ValueError("invalid candidate list")
     return [html.unescape(item) for item in candidates]
@@ -73,7 +112,13 @@ def parse_recommendations(info):
         try:
             response = json.loads(response)
         except json.JSONDecodeError:
-            return [], "json_error"
+            fenced = FENCED_JSON_RE.search(response)
+            if fenced is None:
+                return [], "json_error"
+            try:
+                response = json.loads(fenced.group(1))
+            except json.JSONDecodeError:
+                return [], "json_error"
     if not isinstance(response, dict):
         return [], "invalid_response"
     recommendations = response.get("recommendations", [])

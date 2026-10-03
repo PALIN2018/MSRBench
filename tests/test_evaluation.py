@@ -9,6 +9,8 @@ from LVLM4Rec.evaluation import (
     evaluate_file,
     map_to_candidate,
     normalize_title,
+    parse_candidates,
+    parse_recommendations,
 )
 
 
@@ -65,6 +67,23 @@ class TitleMappingTests(unittest.TestCase):
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_preranked_reranking_prompt_candidates_are_parsed(self):
+        candidates = ["Item [Special Edition]", "Other Item"]
+        prompt = (
+            "This is a pre-ranked item recommendation sequence in order of likelihood "
+            f"that the user will purchase them, from highest to lowest:{candidates}."
+        )
+        self.assertEqual(parse_candidates(prompt), candidates)
+
+    def test_fenced_json_response_with_model_suffix_is_parsed(self):
+        info = {
+            "api_response": (
+                "```json\n{\"recommendations\": [\"Target Item\"]}\n``` "
+                "<|endoftext|>"
+            )
+        }
+        self.assertEqual(parse_recommendations(info), (["Target Item"], "ok"))
+
     def test_fixed_denominator_and_rank_slots(self):
         candidates = ["Target Item", "Other Item", "Third Item"]
         data = {
