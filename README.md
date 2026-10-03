@@ -65,6 +65,7 @@ MRecBench/
 │   ├── utils/
 │   │   ├── __init__.py
 │   │   ├── metrics4rec.py
+│   ├── evaluation.py
 │   ├── evaluation.ipynb
 │   └── get_rec_results.ipynb
 ├── .gitignore
@@ -100,7 +101,29 @@ To obtain LVLM-based recommendation results for S1, S3, S4, S5 strategies:
    ```
 2. Run the `generate_prompts.ipynb` notebook to generate the sampled prompts and photos. The generated prompts and photos will be saved in the specified paths.
 3. Run the `get_rec_results.ipynb` notebook in the `LVLM4Rec` directory to obtain the recommendation results.
-4. Finally, run `evaluation.ipynb` to evaluate the results.
+4. Evaluate the saved outputs with the conservative, candidate-aware evaluator:
+
+   ```bash
+   python LVLM4Rec/evaluation.py /path/to/results \
+     --output evaluation_results.csv \
+     --cohort-size 400
+   ```
+
+### Evaluation policy
+
+`LVLM4Rec/evaluation.py` maps every generated title to the complete candidate
+pool without using the identity of the target item. It accepts normalized exact
+matches, punctuation/symbol-only variants, and a unique informative prefix when
+the model truncates a long title. It does not use target-aware Jaccard matching
+and does not guess between different product names, models, colors, sizes, or
+editions.
+
+Unmatched and duplicate outputs retain their original ranking positions. Empty,
+invalid, and missing responses receive zero credit, and metrics use the fixed
+cohort size supplied by `--cohort-size` as their denominator. CSV metric columns
+ending in `_pct` are percentages. The historical `evaluation.ipynb` is retained
+only for reproducing the original evaluation and should not be used for new
+results.
 
 To obtain SASRec-based recommendation results (for S2 and other SASRec variants):
 
